@@ -145,41 +145,22 @@ public class Controller {
     }
 
     // Sends audio data to be played to the data line
-    private void playBeep(SourceDataLine line, int durationMs) {
+    private void playBeep(SourceDataLine line, int duration){
+        // Create audio data
+        byte[] data = new byte[duration * 44100 / 1000];
 
-        // Sample rate must match the AudioFormat (44100 Hz)
-        float sampleRate = 44100;
+        for(int i = 0; i < data.length; i++){
+            // Calculates the angle of the sine wave for the current sample based on the sample rate and frequency
+            double angle = i / (44100.0/440) * 2.0 * Math.PI;
 
-        // Frequency of the beep tone in Hz
-        double frequency = 800.0;
-
-        // Number of audio samples for the given duration (milliseconds)
-        int numSamples = (int) (durationMs * sampleRate / 1000);
-
-        // 16-bit audio => 2 bytes per sample (frameSize = 2)
-        byte[] data = new byte[numSamples * 2];
-
-        for (int i = 0; i < numSamples; i++) {
-
-            // Calculates the angle of the sine wave for the current sample
-            // Uses the sample index, frequency and sample rate
-            double angle = 2.0 * Math.PI * i * frequency / sampleRate;
-
-            // Volume control: 0.0 (silence) to 1.0 (max)
-            double volume = 0.15;
-
-            // Generates the sine wave value and scales it to the range of a signed 16-bit value
-            // short range: -32768 to 32767
-            short sample = (short) (Math.sin(angle) * Short.MAX_VALUE * volume);
-
-            // Splits the 16-bit sample into two bytes (big-endian)
-            // High byte first, because AudioFormat is big-endian = true
-            data[2 * i]     = (byte) (sample >> 8);
-            data[2 * i + 1] = (byte) (sample);
+            // Calculates the amplitude of the sine wave at the current angle and scale it to fit within the range of
+            // a signed byte (-128, 127)
+            // also in the context of audio processing, a signed bytes is often used to represent audio data because it
+            // can represent both positive and negative amplitudes of sound waves
+            data[i] = (byte) (Math.sin(angle) * 127.0);
         }
 
-        // Writes the audio buffer to the sound line
-        // The buffer size is now always a multiple of the frame size
+        // Write the audio dat in the data line to be played
         line.write(data, 0, data.length);
     }
 }
